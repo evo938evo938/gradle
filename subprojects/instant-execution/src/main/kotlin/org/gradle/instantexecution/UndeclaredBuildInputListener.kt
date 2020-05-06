@@ -16,7 +16,11 @@
 
 package org.gradle.instantexecution
 
+import org.gradle.internal.service.scopes.EventScope
+import org.gradle.internal.service.scopes.Scopes
 
+
+@EventScope(Scopes.Build)
 interface UndeclaredBuildInputListener {
     fun systemPropertyRead(key: String)
 }
