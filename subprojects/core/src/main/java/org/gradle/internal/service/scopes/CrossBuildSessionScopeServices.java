@@ -27,6 +27,7 @@ import org.gradle.configuration.internal.UserCodeApplicationContext;
 import org.gradle.initialization.DefaultGradleLauncherFactory;
 import org.gradle.initialization.GradleLauncherFactory;
 import org.gradle.internal.concurrent.CompositeStoppable;
+import org.gradle.internal.concurrent.DefaultParallelismConfiguration;
 import org.gradle.internal.concurrent.ExecutorFactory;
 import org.gradle.internal.event.ListenerManager;
 import org.gradle.internal.logging.progress.ProgressLoggerFactory;
@@ -73,7 +74,7 @@ public class CrossBuildSessionScopeServices implements Closeable {
     private final Services services;
 
     public CrossBuildSessionScopeServices(ServiceRegistry parent, StartParameter startParameter) {
-        this.services = new Services(parent);
+        this.services = new Services(parent, startParameter);
 
         this.buildOperationListenerManager = parent.get(BuildOperationListenerManager.class);
 
@@ -136,8 +137,15 @@ public class CrossBuildSessionScopeServices implements Closeable {
 
     private class Services extends DefaultServiceRegistry {
 
-        public Services(ServiceRegistry parent) {
+        private final StartParameter startParameter;
+
+        public Services(ServiceRegistry parent, StartParameter startParameter) {
             super(parent);
+            this.startParameter = startParameter;
+        }
+
+        ParallelismConfiguration createParallelismConfiguration() {
+            return new DefaultParallelismConfiguration(startParameter.isParallelProjectExecutionEnabled(), startParameter.getMaxWorkerCount());
         }
 
         GradleLauncherFactory createGradleLauncherFactory(GradleUserHomeScopeServiceRegistry userHomeDirServiceRegistry) {
