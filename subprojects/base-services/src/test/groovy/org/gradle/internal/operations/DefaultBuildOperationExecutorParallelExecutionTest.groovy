@@ -20,7 +20,6 @@ import org.gradle.api.GradleException
 import org.gradle.internal.concurrent.DefaultExecutorFactory
 import org.gradle.internal.concurrent.DefaultParallelismConfiguration
 import org.gradle.internal.concurrent.ExecutorFactory
-import org.gradle.internal.concurrent.ManagedExecutor
 import org.gradle.internal.exceptions.DefaultMultiCauseException
 import org.gradle.internal.progress.NoOpProgressLoggerFactory
 import org.gradle.internal.resources.DefaultResourceLockCoordinationService
@@ -386,45 +385,5 @@ class DefaultBuildOperationExecutorParallelExecutionTest extends ConcurrentSpec 
         then:
         operationState != null
         !operationState.running
-    }
-
-    def "registers/deregisters a listener for parallelism changes"() {
-        def parallelismConfiguration = new DefaultParallelismConfiguration(true, 1)
-
-        when:
-        buildOperationExecutor = new DefaultBuildOperationExecutor(operationListener, Mock(Clock), new NoOpProgressLoggerFactory(),
-            Stub(BuildOperationQueueFactory), Stub(ExecutorFactory), parallelismConfiguration, new DefaultBuildOperationIdFactory())
-
-        then:
-        parallelismConfiguration.listeners.size() == 1
-
-        when:
-        buildOperationExecutor.stop()
-
-        then:
-        parallelismConfiguration.listeners.size() == 0
-    }
-
-    def "adjusts thread pool size when parallelism configuration changes"() {
-        executorFactory = Mock(ExecutorFactory)
-        def managedExecutor = Mock(ManagedExecutor)
-
-        when:
-        setupBuildOperationExecutor(2)
-
-        then:
-        1 * executorFactory.create(_, 2) >> managedExecutor
-
-        when:
-        buildOperationExecutor.onParallelismConfigurationChange(new DefaultParallelismConfiguration(true, 3))
-
-        then:
-        1 * managedExecutor.setFixedPoolSize(3)
-
-        when:
-        buildOperationExecutor.onParallelismConfigurationChange(new DefaultParallelismConfiguration(false, 1))
-
-        then:
-        1 * managedExecutor.setFixedPoolSize(1)
     }
 }

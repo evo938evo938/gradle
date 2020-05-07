@@ -152,20 +152,6 @@ class DefaultWorkerLeaseServiceTest extends Specification {
         !lock2.lockedState
     }
 
-    def "adjusts max worker count on parallelism configuration change"() {
-        when:
-        workerLeaseService.onParallelismConfigurationChange(new DefaultParallelismConfiguration(true, 2))
-
-        then:
-        workerLeaseService.getMaxWorkerCount() == 2
-
-        when:
-        workerLeaseService.onParallelismConfigurationChange(new DefaultParallelismConfiguration(false, 4))
-
-        then:
-        workerLeaseService.getMaxWorkerCount() == 4
-    }
-
     TestTrackedResourceLock resourceLock(String displayName, boolean locked, boolean hasLock = false) {
         return new TestTrackedResourceLock(displayName, coordinationService, Mock(Action), Mock(Action), locked, hasLock)
     }
