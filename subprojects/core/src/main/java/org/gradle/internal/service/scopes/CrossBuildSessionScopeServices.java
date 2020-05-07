@@ -19,6 +19,7 @@ package org.gradle.internal.service.scopes;
 import org.gradle.StartParameter;
 import org.gradle.api.internal.CollectionCallbackActionDecorator;
 import org.gradle.api.internal.DefaultCollectionCallbackActionDecorator;
+import org.gradle.concurrent.ParallelismConfiguration;
 import org.gradle.configuration.internal.DefaultListenerBuildOperationDecorator;
 import org.gradle.configuration.internal.DefaultUserCodeApplicationContext;
 import org.gradle.configuration.internal.ListenerBuildOperationDecorator;
@@ -27,7 +28,6 @@ import org.gradle.initialization.DefaultGradleLauncherFactory;
 import org.gradle.initialization.GradleLauncherFactory;
 import org.gradle.internal.concurrent.CompositeStoppable;
 import org.gradle.internal.concurrent.ExecutorFactory;
-import org.gradle.internal.concurrent.ParallelismConfigurationManager;
 import org.gradle.internal.event.ListenerManager;
 import org.gradle.internal.logging.progress.ProgressLoggerFactory;
 import org.gradle.internal.logging.sink.OutputEventListenerManager;
@@ -147,8 +147,8 @@ public class CrossBuildSessionScopeServices implements Closeable {
             );
         }
 
-        WorkerLeaseService createWorkerLeaseService(ResourceLockCoordinationService resourceLockCoordinationService, ParallelismConfigurationManager parallelismConfigurationManager) {
-            return new DefaultWorkerLeaseService(resourceLockCoordinationService, parallelismConfigurationManager);
+        WorkerLeaseService createWorkerLeaseService(ResourceLockCoordinationService resourceLockCoordinationService, ParallelismConfiguration parallelismConfiguration) {
+            return new DefaultWorkerLeaseService(resourceLockCoordinationService, parallelismConfiguration);
         }
 
         BuildOperationExecutor createBuildOperationExecutor(
@@ -156,7 +156,7 @@ public class CrossBuildSessionScopeServices implements Closeable {
             ProgressLoggerFactory progressLoggerFactory,
             WorkerLeaseService workerLeaseService,
             ExecutorFactory executorFactory,
-            ParallelismConfigurationManager parallelismConfigurationManager,
+            ParallelismConfiguration parallelismConfiguration,
             BuildOperationIdFactory buildOperationIdFactory
         ) {
             return new DefaultBuildOperationExecutor(
@@ -165,7 +165,7 @@ public class CrossBuildSessionScopeServices implements Closeable {
                 progressLoggerFactory,
                 new DefaultBuildOperationQueueFactory(workerLeaseService),
                 executorFactory,
-                parallelismConfigurationManager,
+                parallelismConfiguration,
                 buildOperationIdFactory
             );
         }

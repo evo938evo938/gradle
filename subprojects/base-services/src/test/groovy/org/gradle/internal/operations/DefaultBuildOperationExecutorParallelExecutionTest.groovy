@@ -21,8 +21,6 @@ import org.gradle.internal.concurrent.DefaultExecutorFactory
 import org.gradle.internal.concurrent.DefaultParallelismConfiguration
 import org.gradle.internal.concurrent.ExecutorFactory
 import org.gradle.internal.concurrent.ManagedExecutor
-import org.gradle.internal.concurrent.ParallelismConfigurationManager
-import org.gradle.internal.concurrent.ParallelismConfigurationManagerFixture
 import org.gradle.internal.exceptions.DefaultMultiCauseException
 import org.gradle.internal.progress.NoOpProgressLoggerFactory
 import org.gradle.internal.resources.DefaultResourceLockCoordinationService
@@ -42,17 +40,18 @@ class DefaultBuildOperationExecutorParallelExecutionTest extends ConcurrentSpec 
     ExecutorFactory executorFactory = new DefaultExecutorFactory()
 
     def setupBuildOperationExecutor(int maxThreads) {
-        ParallelismConfigurationManager parallelExecutionManager = new ParallelismConfigurationManagerFixture(true, maxThreads)
-        workerRegistry = new DefaultWorkerLeaseService(new DefaultResourceLockCoordinationService(), parallelExecutionManager)
+        def parallelismConfiguration = new DefaultParallelismConfiguration(true, maxThreads)
+        workerRegistry = new DefaultWorkerLeaseService(new DefaultResourceLockCoordinationService(), parallelismConfiguration)
         buildOperationExecutor = new DefaultBuildOperationExecutor(
             operationListener, Mock(Clock), new NoOpProgressLoggerFactory(),
-            new DefaultBuildOperationQueueFactory(workerRegistry), executorFactory, parallelExecutionManager, new DefaultBuildOperationIdFactory())
+            new DefaultBuildOperationQueueFactory(workerRegistry), executorFactory, parallelismConfiguration, new DefaultBuildOperationIdFactory())
         outerOperationCompletion = workerRegistry.getWorkerLease().start()
         outerOperation = workerRegistry.getCurrentWorkerLease()
     }
 
     static class SimpleWorker implements BuildOperationWorker<DefaultBuildOperationQueueTest.TestBuildOperation> {
         void execute(DefaultBuildOperationQueueTest.TestBuildOperation run, BuildOperationContext context) { run.run(context) }
+
         String getDisplayName() { return getClass().simpleName }
     }
 
@@ -207,7 +206,7 @@ class DefaultBuildOperationExecutorParallelExecutionTest extends ConcurrentSpec 
         }
 
         def buildOperationExecutor = new DefaultBuildOperationExecutor(operationListener, Mock(Clock), new NoOpProgressLoggerFactory(),
-            buildOperationQueueFactory, Stub(ExecutorFactory), new ParallelismConfigurationManagerFixture(true, 1), new DefaultBuildOperationIdFactory())
+            buildOperationQueueFactory, Stub(ExecutorFactory), new DefaultParallelismConfiguration(true, 1), new DefaultBuildOperationIdFactory())
         def worker = Stub(BuildOperationWorker)
         def operation = Mock(DefaultBuildOperationQueueTest.TestBuildOperation)
 
@@ -235,7 +234,7 @@ class DefaultBuildOperationExecutorParallelExecutionTest extends ConcurrentSpec 
         }
         def buildOperationExecutor = new DefaultBuildOperationExecutor(
             operationListener, Mock(Clock), new NoOpProgressLoggerFactory(),
-            buildOperationQueueFactory, Stub(ExecutorFactory), new ParallelismConfigurationManagerFixture(true, 1), new DefaultBuildOperationIdFactory())
+            buildOperationQueueFactory, Stub(ExecutorFactory), new DefaultParallelismConfiguration(true, 1), new DefaultBuildOperationIdFactory())
         def worker = Stub(BuildOperationWorker)
         def operation = Mock(DefaultBuildOperationQueueTest.TestBuildOperation)
 
@@ -390,20 +389,20 @@ class DefaultBuildOperationExecutorParallelExecutionTest extends ConcurrentSpec 
     }
 
     def "registers/deregisters a listener for parallelism changes"() {
-        def parallelExecutionManager = new ParallelismConfigurationManagerFixture(true, 1)
+        def parallelismConfiguration = new DefaultParallelismConfiguration(true, 1)
 
         when:
         buildOperationExecutor = new DefaultBuildOperationExecutor(operationListener, Mock(Clock), new NoOpProgressLoggerFactory(),
-            Stub(BuildOperationQueueFactory), Stub(ExecutorFactory), parallelExecutionManager, new DefaultBuildOperationIdFactory())
+            Stub(BuildOperationQueueFactory), Stub(ExecutorFactory), parallelismConfiguration, new DefaultBuildOperationIdFactory())
 
         then:
-        parallelExecutionManager.listeners.size() == 1
+        parallelismConfiguration.listeners.size() == 1
 
         when:
         buildOperationExecutor.stop()
 
         then:
-        parallelExecutionManager.listeners.size() == 0
+        parallelismConfiguration.listeners.size() == 0
     }
 
     def "adjusts thread pool size when parallelism configuration changes"() {
